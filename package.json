@@ -1,0 +1,65 @@
+{
+  "name": "simple-rpc",
+  "version": "1.0.0",
+  "description": "simple rpc between iframes and windows using postMessage",
+  "main": "lib/RPC.js",
+  "types": "lib/RPC.d.ts",
+  "devDependencies": {
+    "@types/jest": "^23.3.0",
+    "hollow-cli": "^1.1.0-beta.8",
+    "jest-cli": "^23.4.1",
+    "ts-jest": "^23.0.1"
+  },
+  "scripts": {
+    "test": "tape test/*.js",
+    "dev": "hollow dev -p 9977",
+    "build": "npm run tsc:build && npm run optimize",
+    "tsc:build": "rm -fr dist && tsc -p tsconfig.esm.json && cp -R dist/esm dist/lib",
+    "optimize": "npm run babel:cjs & npm run babel:mjs",
+    "babel:cjs": "babel dist/lib --out-dir dist/lib --plugins=lodash,transform-es2015-modules-commonjs",
+    "babel:mjs": "babel dist/esm --out-dir dist/esm --plugins=lodash",
+    "test:start": "jest -o --watch",
+    "publish2npm": "npm run lint && npm run build && cp {package.json,README.md,.npmignore} dist && npm publish dist",
+    "codecov": "codecov",
+    "lint": "tslint 'src/**/*.ts' && npm test"
+  },
+  "keywords": [
+    "browser",
+    "iframe",
+    "window",
+    "rpc",
+    "dom"
+  ],
+  "author": "nanyuantingfeng <nanyuantingfeng@aliyun.com>",
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.{ts,tsx,js,jsx}"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/fixtures/"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest"
+    },
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/__tests__/",
+      "/dist/"
+    ]
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nanyuantingfeng/simple-rpc.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nanyuantingfeng/simple-rpc/issues"
+  },
+  "homepage": "https://github.com/nanyuantingfeng/simple-rpc#readme"
+}
