@@ -115,3 +115,8 @@ test('methods two-way obejct', async () => {
   expect(g).toBe(999);
 
 });
+
+test('override message', async () => {
+
+})
+

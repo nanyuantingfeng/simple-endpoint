@@ -1,6 +1,6 @@
 {
   "name": "simple-rpc",
-  "version": "1.0.0",
+  "version": "1.0.0.beta.0",
   "description": "simple rpc between iframes and windows using postMessage",
   "main": "lib/RPC.js",
   "types": "lib/RPC.d.ts",
@@ -19,7 +19,7 @@
     "babel:cjs": "babel dist/lib --out-dir dist/lib --plugins=lodash,transform-es2015-modules-commonjs",
     "babel:mjs": "babel dist/esm --out-dir dist/esm --plugins=lodash",
     "test:start": "jest -o --watch",
-    "publish2npm": "npm run lint && npm run build && cp {package.json,README.md,.npmignore} dist && npm publish dist",
+    "publish2npm": "npm run build && cp  package.json README.md dist && npm publish dist",
     "codecov": "codecov",
     "lint": "tslint 'src/**/*.ts' && npm test"
   },
