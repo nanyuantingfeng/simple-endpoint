@@ -9,8 +9,9 @@ const URL = (s) => url.parse(s);
 
 let client_ee;
 let server_ee;
+
 let client: IFrameLike;
-let server;
+let server: IFrameLike;
 
 beforeEach(() => {
 
@@ -53,22 +54,22 @@ beforeEach(() => {
 });
 
 test('methods obejct', async () => {
-  const server_rpc = new RPC(client, server, server.origin, {
+  const a_rpc = new RPC(client, server, server.origin, {
     async demo (n) {
       expect(n).toBe(5);
       return n * 111111;
     },
   });
 
-  const client_rpc = new RPC(server, client, client.origin);
+  const b_rpc = new RPC(server, client, client.origin);
 
-  const d = await client_rpc.invoke('demo', 5);
+  const d = await b_rpc.invoke('demo', 5);
   expect(d).toBe(555555);
 });
 
 test('methods function', async () => {
 
-  const server_rpc = new RPC(client, server, server.origin, rpc => {
+  const a_rpc = new RPC(client, server, server.origin, rpc => {
     expect(typeof rpc.invoke).toBe('function');
     expect(rpc.origin).toBe(server.origin);
 
@@ -80,9 +81,37 @@ test('methods function', async () => {
     };
   });
 
-  const client_rpc = new RPC(server, client, client.origin);
+  const b_rpc = new RPC(server, client, client.origin);
 
-  const d = await client_rpc.invoke('demo', 101);
+  const d = await b_rpc.invoke('demo', 101);
   expect(d).toBe(11211);
+
+});
+
+test('methods two-way obejct', async () => {
+
+  const a_rpc = new RPC(client, server, server.origin, rpc => {
+    expect(typeof rpc.invoke).toBe('function');
+    expect(rpc.origin).toBe(server.origin);
+    return {
+      demo (n) {
+        expect(n).toBe(101);
+        return n * 111;
+      },
+    };
+  });
+
+  const b_rpc = new RPC(server, client, client.origin, {
+    ccc (n) {
+      expect(n).toBe(777);
+      return 999;
+    },
+  });
+
+  const d = await b_rpc.invoke('demo', 101);
+  expect(d).toBe(11211);
+
+  const g = await a_rpc.invoke('ccc', 777);
+  expect(g).toBe(999);
 
 });
