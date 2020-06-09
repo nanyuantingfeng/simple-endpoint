@@ -1,7 +1,9 @@
 
 .git/
+.idea/
 __tests__/
 coverage/
+demo/
 jest-config/
 node_modules/
 src/

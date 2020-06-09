@@ -13,13 +13,13 @@
         fn999(data) {
           data.f = 1
           return data
-        },
+        }
       })
 
       endpoint.listen()
 
       function call_main_fn000() {
-        endpoint.invoke('fn000', { a: 9 }).then(result => {
+        endpoint.invoke('fn000', { a: 9 }).then((result) => {
           console.log('iframe call main fn0 ::result:', result)
           const R = document.getElementById('result-0')
           const li = document.createElement('li')
