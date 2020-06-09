@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <script src="../../dist/Endpoint.umd.js"></script>
+  </head>
+  <body>
+    <script>
+      const Endpoint = simple_rpc.Endpoint
+
+      const endpoint = new Endpoint({
+        fn999(data) {
+          data.f = 1
+          return data
+        }
+      })
+
+      Endpoint.connect(window, window.parent)
+
+      endpoint.listen()
+
+      function call_main_fn000() {
+        endpoint.invoke('fn000', { a: 9 }).then((result) => {
+          console.log('iframe call main fn0 ::result:', result)
+          const R = document.getElementById('result-0')
+          const li = document.createElement('li')
+          li.innerHTML = JSON.stringify(result)
+          R.appendChild(li)
+          window.__RESULT__ = result
+        })
+      }
+    </script>
+
+    <button id="button-0" onclick="call_main_fn000()">Call fn999</button>
+
+    <ul id="result-0"></ul>
+  </body>
+</html>

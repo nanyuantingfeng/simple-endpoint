@@ -1,58 +1,48 @@
 {
   "name": "simple-rpc",
-  "version": "1.0.0.beta.0",
-  "description": "simple rpc between iframes and windows using postMessage",
-  "main": "lib/RPC.js",
-  "types": "lib/RPC.d.ts",
+  "version": "1.0.0-beta.0",
+  "description": "simple function call between iframe and window using postMessage",
+  "main": "dist/Endpoint.umd.js",
+  "module": "dist/Endpoint.esm.js",
+  "types": "dist/Endpoint.d.ts",
+  "resolutions": {
+    "fsevents": ""
+  },
   "devDependencies": {
-    "@types/jest": "^23.3.0",
-    "hollow-cli": "^1.1.0-beta.8",
-    "jest-cli": "^23.4.1",
-    "ts-jest": "^23.0.1"
+    "chalk": "^4.0.0",
+    "mkdirp": "^1.0.4",
+    "rimraf": "^3.0.2",
+    "@types/glob": "^7.1.1",
+    "@types/jest": "^25.2.3",
+    "@types/puppeteer": "^3.0.0",
+    "glob": "^7.1.6",
+    "jest": "^26.0.1",
+    "jest-cli": "^26.0.1",
+    "jest-puppeteer": "^4.4.0",
+    "mobx": "^5.15.4",
+    "nock": "^12.0.3",
+    "puppeteer": "^3.3.0",
+    "rollup": "^2.12.0",
+    "rollup-plugin-typescript2": "^0.27.1",
+    "rollup-plugin-uglify": "^6.0.4",
+    "ts-jest": "^26.1.0",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.3"
   },
   "scripts": {
-    "test": "tape test/*.js",
-    "dev": "hollow dev -p 9977",
-    "build": "npm run tsc:build && npm run optimize",
-    "tsc:build": "rm -fr dist && tsc -p tsconfig.esm.json && cp -R dist/esm dist/lib",
-    "optimize": "npm run babel:cjs & npm run babel:mjs",
-    "babel:cjs": "babel dist/lib --out-dir dist/lib --plugins=lodash,transform-es2015-modules-commonjs",
-    "babel:mjs": "babel dist/esm --out-dir dist/esm --plugins=lodash",
-    "test:start": "jest -o --watch",
-    "publish2npm": "npm run build && cp  package.json README.md dist && npm publish dist",
-    "codecov": "codecov",
-    "lint": "tslint 'src/**/*.ts' && npm test"
+    "build": "rm -rf dist && rollup -c",
+    "test": "jest --coverage",
+    "benchmark": "jest benchmark",
+    "prepublish": "npm run build"
   },
   "keywords": [
     "browser",
     "iframe",
     "window",
     "rpc",
-    "dom"
+    "endpoint"
   ],
   "author": "nanyuantingfeng <nanyuantingfeng@aliyun.com>",
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
-    "testMatch": [
-      "<rootDir>/src/**/__tests__/**/*.test.{ts,tsx,js,jsx}"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/fixtures/"
-    ],
-    "transform": {
-      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest"
-    },
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "/__tests__/",
-      "/dist/"
-    ]
-  },
-  "dependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nanyuantingfeng/simple-rpc.git"
