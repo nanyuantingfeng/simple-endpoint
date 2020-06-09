@@ -5,7 +5,7 @@ import pkg from './package.json'
 export default [
   {
     input: './src/Endpoint.ts',
-    output: [{ file: pkg.main, format: 'umd', name: 'simple_rpc', exports: 'named' }],
+    output: [{ file: pkg.main, format: 'umd', name: 'Endpoint' }],
     plugins: [
       typescript({
         check: true,

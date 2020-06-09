@@ -11,8 +11,8 @@ type MessageEventData = {
   result?: any
 }
 
-const ENDPOINT_VERSION = '1.0.0'
-const INITIALIZE_MESSAGE = '$$$SIMPLE_RPC_INITIALIZE_CONNECT$_$X$'
+const ENDPOINT_VERSION = `1.0.0`
+const INITIALIZE_MESSAGE = `$$$SIMPLE_RPC_INITIALIZE_CONNECT$_$X$`
 const NOT_IFRAME_ID = `Endpoint.connect(dist0,dist1) if dist0 or dist1 is string, it is must be a iframe id.`
 const NOT_MATCH_VERSION = `Two Endpoint instances of inconsistent version have been found. Please note the upgrade`
 
@@ -22,7 +22,7 @@ function createId() {
   return `ENDPOINT_CALLBACK_ID__${++__COUNT__}`
 }
 
-function getByPath(source: any, path: string, defaultV: any = undefined) {
+function getByPath(source: any, path: string, defaultV?: any) {
   const paths = path.replace(/\[(\d+)\]/g, '.$1').split('.')
   let oo = source
 
@@ -62,7 +62,7 @@ function elementOnrReady(element: HTMLIFrameElement | Window, fn: (win: Window) 
   }
 }
 
-export class Endpoint<T extends { [key: string]: (...args: any) => any }> {
+class Endpoint<T extends { [key: string]: (...args: any) => any }> {
   static connect: (dist0: string | HTMLIFrameElement | Window, dist1?: string | HTMLIFrameElement | Window) => void
 
   private target: MessagePort
