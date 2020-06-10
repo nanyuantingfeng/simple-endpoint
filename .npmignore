@@ -2,6 +2,7 @@
 .git/
 .idea/
 __tests__/
+examples/
 coverage/
 demo/
 jest-config/
@@ -15,6 +16,7 @@ jest.config.js
 rollup.config.js
 tsconfig.build.json
 tsconfig.json
+
 
 
 

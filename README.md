@@ -87,6 +87,12 @@ endpoint.invoke('beep', 5).then(result => {
 
 
 
+## 浏览器支持
+
+
+
+
+
 ## QA
 
 1. Endpoint.connect 函数应该在main中调用,还是iframe中调用?

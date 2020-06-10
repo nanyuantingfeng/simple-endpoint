@@ -7,23 +7,20 @@ describe('simple call function connect at iframe page', () => {
 
   beforeAll(async () => {
     page = await global.__BROWSER__.newPage()
-    await page.goto(`file://${__dirname}/example1/main.html`)
+    await page.goto(`file://${__dirname}/../examples/example-1-simple-connect-in-iframe-page/main.html`)
   })
 
   afterAll(async () => {
     await page.close()
   })
 
-  it('should call function invocations between main and iframe', async () => {
+  it('should call function invocations between "main" and "iframe"', async () => {
     const button = await page.$('#button-0')
     await button.click()
-
     await page.waitFor(1000)
-
     const result = await page.evaluate(() => {
       return window.__RESULT__
     })
-
     expect(result).toEqual({ ax: false, d: { e: 99 }, f: 1 })
 
     const iframeHandle = await page.$('#iframe-0')
