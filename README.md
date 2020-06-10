@@ -1,6 +1,6 @@
 # simple-endpoint
 
->  在iframe之间相互调用函数的库
+> 在iframe之间相互调用函数的小工具库, 为 `main page`,`iframe page`,`nested iframe` 之间提供通信能力,调用函数的体验的接近于本地异步函数.
 
 
 
@@ -14,21 +14,32 @@ npm install simple-endpoint
 
 ## 使用
 
+```html
+//ES5 
+const Endpoint = require('simple-endpoint');
+
+//ES6
+import Endpoint from 'simple-endpoint'
+
+//Browser
+<script src="......./simple-endpoint/dist/Endpoint.umd.js"></script>
+
+
+```
+
+
+
 
 
 ## 示例
 
-从iframe中导出一个方法
-
 // iframe.js
 
 ``` js
-const Endpoint = require('simple-endpoint');
- 
 
 const endpoint = new Endpoint({
-    beep (n) {
-       return n * 12;
+    doY (n,y) {
+       return n * 12 / y;
     }
 });
 
@@ -36,9 +47,10 @@ Endpoint.connect(window, window.parent)
 
 endpoint.listen()
 
-endpoint.invoke("doX", 4).then(result => {
+// call window.parent endpoint instance fucntion `doX`
+endpoint.invoke("doX", 4,5,6).then(result => {
   
-  // result ===  999 * 4
+  // result ===  999 * 4 + 5 - 6
   
 })
 
@@ -49,21 +61,26 @@ endpoint.invoke("doX", 4).then(result => {
 // main.js
 
 ``` js
-const Endpoint = require('simple-endpoint');
  
 const endpoint = new Endpoint({
-  doX(a){
-    return 999 * a
+  doX(a,b,c){
+    return 999 * a + b - c
   }
 });
 
+// At iframe also can call Endpoint.connect, choose between them
 // Endpoint.connect(window, document.getElementById("iframe0"))
 
-endpoint.invoke('beep', 5).then(result => {
-  // result === 12 * 5
+// call iframe window endpoint instance function `beep`
+endpoint.invoke('doY', 5, 8).then(result => {
+  // result === 12 * 5 / 8
 });
 
 ```
+
+
+
+更多示例请观看 [examples](https://github.com/nanyuantingfeng/simple-endpoint/tree/master/examples)
 
 # API
 
@@ -89,7 +106,11 @@ endpoint.invoke('beep', 5).then(result => {
 
 ## 浏览器支持
 
+1. 通信逻辑依赖 `MessageChannel API`,请参考 [Caniuse MessageChannel](https://caniuse.com/#search=MessageChannel)
 
+2. 异步逻辑由`Promise API`进行提供, 如果浏览器不支持,请提供 `polyfill`
+
+   
 
 
 
@@ -99,7 +120,8 @@ endpoint.invoke('beep', 5).then(result => {
 
    > 都可以, 但是还是建议在 iframe 中调用, 如果在 main page 中调用,请确保在调用 connect 之前保证 iframe page 中的Endpoint实例的已经初始化, 如果你不能保证 iframe 中Endpoint实例初始化在connect调用之前, 请在iframe page 中调用 connect.
 
-2. Endpoint.connect 能在main和iframe中均调用吗?
+2. Endpoint.connect 能在main和iframe中都调用吗?
 
-   > 可以, 后一次执行connect时候会调用实例的destroy方法, 所以无论调用多少次, 此方法都是安全的
+   > 可以, 后一次执行connect时会调用实例的destroy方法, 所以无论调用多少次, 此方法都是安全的
 
+3. 
