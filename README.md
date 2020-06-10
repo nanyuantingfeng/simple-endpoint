@@ -41,6 +41,11 @@ const endpoint = new Endpoint({
     doY (n,y) {
        return n * 12 / y;
     }
+}, e => {
+  // when other iframe call this endpoint function,
+  // and this fucntion is not registered at endpoint.
+  // current calling will forwarding this here.
+  
 });
 
 Endpoint.connect(window, window.parent)
@@ -114,7 +119,7 @@ endpoint.invoke('doY', 5, 8).then(result => {
 
 
 
-## QA
+## 说明
 
 1. Endpoint.connect 函数应该在main中调用,还是iframe中调用?
 
@@ -124,4 +129,4 @@ endpoint.invoke('doY', 5, 8).then(result => {
 
    > 可以, 后一次执行connect时会调用实例的destroy方法, 所以无论调用多少次, 此方法都是安全的
 
-3. 
+   
