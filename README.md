@@ -85,39 +85,48 @@ endpoint.invoke('doY', 5, 8).then(result => {
 
 
 
-更多示例请观看 [examples](https://github.com/nanyuantingfeng/simple-endpoint/tree/master/examples)
+更多示例 :  [examples](https://github.com/nanyuantingfeng/simple-endpoint/tree/master/examples)
 
 # API
+0. `constructor(handlers, options)`
 
-1. static connect(dist :string | HTMLIFrameElement | Window, dist1) 
+* handlers :  提供注册的服务列表
+* options 
+    *  connectId : string // 当前实例ID
+    *  defaultHandler : Function // 默认handler, 在没有找到注册的方法时被调用.
+   
+
+
+1. `static connect(dist: string | HTMLIFrameElement | Window, dist1, connectId: string) `
 
    > 链接两个端点, 端点可以是 `window` 实例/iframe元素/iframe元素的id
    >
    > 此方法会向两个dist发送初始化事件,以及MessagePort
 
-2. listen()
+2. `listen()`
 
    > 监听来自当前window的消息. 此方法如果不调用,将不会响应来自其他页面的的函数调用.
 
-3. unlisten()
+3. `unlisten()`
 
    > 解除监听,与listen方法对应
 
-4. destroy()
+4. `destroy()`
 
    > 摧毁用于通信的MessagePort, 与unlisten方法有很大不同, 使用的unlisten后再次调用listen,仍然可以监听并响应函数调用. 使用destroy后, 必须重新调用 connect 方法才能重新监听函数调用.
 
+5. `connect(dist:string | HTMLIFrameElement | Window)`
+   
+   > static connect 方法的快捷方式
 
 
 ## 浏览器支持
 
-1. 通信逻辑依赖 `MessageChannel API`,请参考 [Caniuse MessageChannel](https://caniuse.com/#search=MessageChannel)
+1. 通信逻辑依赖 `MessageChannel API`,请参考 [caniuse MessageChannel](https://caniuse.com/#search=MessageChannel)
 
 2. 异步逻辑由`Promise API`进行提供, 如果浏览器不支持,请提供 `polyfill`
 
    
-
-
 
 ## 说明
 
@@ -129,4 +138,3 @@ endpoint.invoke('doY', 5, 8).then(result => {
 
    > 可以, 后一次执行connect时会调用实例的destroy方法, 所以无论调用多少次, 此方法都是安全的
 
-   
