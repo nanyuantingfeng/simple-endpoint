@@ -98,6 +98,10 @@ export default class Endpoint<T extends { [key: string]: (...args: any) => any }
       this.handlers = {}
     }
 
+    if (typeof options === 'undefined') {
+      options = {}
+    }
+
     if (typeof options === 'string') {
       options = { connectId: options }
     }
