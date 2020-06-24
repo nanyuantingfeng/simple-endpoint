@@ -2,7 +2,7 @@
  * Created by nanyuantingfeng on 2020/6/9 12:29. *
  ***************************************************/
 type PromiseType<T> = T extends Promise<infer R> ? R : T
-type MessageEventData = {
+type MessageEventDataType = {
   callback_id?: string
   method?: string
   endpoint_version?: string
@@ -11,18 +11,28 @@ type MessageEventData = {
   result?: any
 }
 
-const ENDPOINT_VERSION = `1.0.0`
-const INITIALIZE_MESSAGE = `$$$SIMPLE_RPC_INITIALIZE_CONNECT$_$X$`
+type DefaultHandlerType = (e: MessageEvent) => Promise<any> | never
+
+type EndpointOptionsType =
+  | string
+  | DefaultHandlerType
+  | {
+      connectId?: string
+      defaultHandler?: DefaultHandlerType
+    }
+
+const ENDPOINT_VERSION = `1.1.0`
+const INITIALIZE_MESSAGE = `$$$SIMPLE_ENDPOINT_INITIALIZE_CONNECT$_$X$`
 const NOT_IFRAME_ID = `Endpoint.connect(dist0,dist1) if dist0 or dist1 is string, it is must be a iframe id.`
 const NOT_MATCH_VERSION = `Two Endpoint instances of inconsistent version have been found. Please note the upgrade`
 
 let __COUNT__ = -1
 
-function createId() {
+function createCallbackId() {
   return `ENDPOINT_CALLBACK_ID__${++__COUNT__}`
 }
 
-function getByPath(source: any, path: string, defaultV?: any) {
+function getValueByPath(source: any, path: string, defaultV?: any) {
   const paths = path.replace(/\[(\d+)\]/g, '.$1').split('.')
   let oo = source
 
@@ -35,9 +45,9 @@ function getByPath(source: any, path: string, defaultV?: any) {
   return oo
 }
 
-function elementOnrReady(element: HTMLIFrameElement | Window, fn: (win: Window) => void) {
+function elementOnReady(element: HTMLIFrameElement | Window, fn: (win: Window) => void) {
   try {
-    if ((element as HTMLIFrameElement).tagName === 'IFRAME') {
+    if ((element as HTMLIFrameElement).tagName.toUpperCase() === 'IFRAME') {
       element.addEventListener('load', () => fn((element as HTMLIFrameElement).contentWindow))
       return
     }
@@ -62,35 +72,55 @@ function elementOnrReady(element: HTMLIFrameElement | Window, fn: (win: Window) 
   }
 }
 
-class Endpoint<T extends { [key: string]: (...args: any) => any }> {
-  static connect: (dist0: string | HTMLIFrameElement | Window, dist1?: string | HTMLIFrameElement | Window) => void
+function makeInitializeMessage(connectId: string = '$X$') {
+  return INITIALIZE_MESSAGE.replace('$X$', connectId)
+}
 
-  private target: MessagePort
-  private dispatches: any = {}
+function defaultMessageEventHandler(e: MessageEvent): never {
+  throw new Error(`handler not found for method '${e.data.method}'`)
+}
 
-  constructor(
-    private readonly handlers?: Record<string, any>,
-    private readonly defaultHandler?: (e: MessageEvent) => Promise<T> | never
-  ) {
+export default class Endpoint<T extends { [key: string]: (...args: any) => any }> {
+  static connect: (
+    dist0: string | HTMLIFrameElement | Window,
+    dist1?: string | HTMLIFrameElement | Window,
+    connectId?: string
+  ) => void
+
+  private __target: MessagePort
+  private __dispatches: any = {}
+  private readonly __initialize_message: string
+  private readonly __default_handler: DefaultHandlerType
+  private readonly __connectId: string
+
+  constructor(private readonly handlers?: Record<string, any>, options?: EndpointOptionsType) {
     if (!this.handlers || typeof this.handlers !== 'object') {
       this.handlers = {}
     }
 
-    if (!defaultHandler) {
-      this.defaultHandler = (e: MessageEvent): never => {
-        throw new Error(`No handler be found for method '${e.data.method}'`)
-      }
+    if (typeof options === 'string') {
+      options = { connectId: options }
     }
+
+    if (typeof options === 'function') {
+      options = { defaultHandler: options }
+    }
+
+    const { connectId, defaultHandler = defaultMessageEventHandler } = options
+
+    this.__connectId = connectId
+    this.__initialize_message = makeInitializeMessage(connectId)
+    this.__default_handler = defaultHandler
   }
 
-  private readonly __handler__ = (e: MessageEvent) => {
-    if (e.data === INITIALIZE_MESSAGE && e.ports && e.ports[0]) {
+  private readonly __handler = (e: MessageEvent) => {
+    if (e.data === this.__initialize_message && e.ports && e.ports[0]) {
       // `Endpoint.connect` maybe called multiple times
       //  or called it on main/iframe page at the same time
       this.destroy()
-      this.target = e.ports[0]
-      this.target.onmessage = (e) => {
-        const data: MessageEventData = e.data
+      this.__target = e.ports[0]
+      this.__target.onmessage = (e) => {
+        const data: MessageEventDataType = e.data
 
         if (typeof data === 'object' && data.endpoint_version) {
           if (data.endpoint_version !== ENDPOINT_VERSION) {
@@ -98,11 +128,11 @@ class Endpoint<T extends { [key: string]: (...args: any) => any }> {
           }
 
           if (data.callback_id && 'result' in data) {
-            return this.handleCallback(e)
+            return this.__handle_callback(e)
           }
 
           if ('method' in data && !('result' in data)) {
-            return this.handleInvoke(e)
+            return this.__handle_invoke(e)
           }
         }
       }
@@ -110,9 +140,10 @@ class Endpoint<T extends { [key: string]: (...args: any) => any }> {
     }
     // other message will be ignored
   }
-  private handleInvoke = (e: MessageEvent) => {
-    const data: MessageEventData = e.data
-    const fn: Function = getByPath(this.handlers, data.method, this.defaultHandler)
+
+  private readonly __handle_invoke = (e: MessageEvent) => {
+    const data: MessageEventDataType = e.data
+    const fn: Function = getValueByPath(this.handlers, data.method, this.__default_handler)
     const R = Promise.resolve(fn.apply(this.handlers, data.params || []))
 
     if (!data.callback_id) {
@@ -133,13 +164,14 @@ class Endpoint<T extends { [key: string]: (...args: any) => any }> {
         callback_id: e.data.callback_id,
         ...response
       }))
-      .then((response) => this.target.postMessage(response))
+      .then((response) => this.__target.postMessage(response))
   }
-  private handleCallback = (e: MessageEvent) => {
-    const data: MessageEventData = e.data
 
-    const dispatch = this.dispatches[data.callback_id]
-    delete this.dispatches[data.callback_id]
+  private readonly __handle_callback = (e: MessageEvent) => {
+    const data: MessageEventDataType = e.data
+
+    const dispatch = this.__dispatches[data.callback_id]
+    delete this.__dispatches[data.callback_id]
 
     if (dispatch && dispatch.resolve && dispatch.reject) {
       data.error ? dispatch.reject(data.error) : dispatch.resolve(data.result)
@@ -148,32 +180,38 @@ class Endpoint<T extends { [key: string]: (...args: any) => any }> {
 
   listen() {
     this.unlisten()
-    window.addEventListener('message', this.__handler__)
+    window.addEventListener('message', this.__handler)
     return this
   }
 
   unlisten() {
-    window.removeEventListener('message', this.__handler__)
+    window.removeEventListener('message', this.__handler)
     return this
   }
 
   destroy() {
-    if (this.target && this.target.close) {
-      this.target.close()
+    if (this.__target && this.__target.close) {
+      this.__target.close()
     }
+    return this
+  }
+
+  connect(dist: string | HTMLIFrameElement | Window = window) {
+    Endpoint.connect(window, dist, this.__connectId)
+    return this
   }
 
   invoke<K extends keyof T>(method: K, ...params: Parameters<T[K]>): Promise<PromiseType<ReturnType<T[K]>>> {
-    const callback_id = createId()
+    const callback_id = createCallbackId()
 
     return new Promise((resolve, reject) => {
-      this.dispatches[callback_id] = { resolve, reject }
+      this.__dispatches[callback_id] = { resolve, reject }
 
       try {
         const message = { endpoint_version: ENDPOINT_VERSION, callback_id, method, params }
-        this.target.postMessage(message)
+        this.__target.postMessage(message)
       } catch (e) {
-        delete this.dispatches[callback_id]
+        delete this.__dispatches[callback_id]
         reject(e)
       }
     })
@@ -182,7 +220,8 @@ class Endpoint<T extends { [key: string]: (...args: any) => any }> {
 
 Endpoint.connect = (
   dist0: string | HTMLIFrameElement | Window = window,
-  dist1: string | HTMLIFrameElement | Window = window
+  dist1: string | HTMLIFrameElement | Window = window,
+  connectId?: string
 ) => {
   if (typeof dist0 === 'string') {
     dist0 = document.getElementById(dist0) as HTMLIFrameElement
@@ -194,8 +233,7 @@ Endpoint.connect = (
   }
 
   const channel = new MessageChannel()
-  elementOnrReady(dist0, (_window) => _window.postMessage(INITIALIZE_MESSAGE, '*', [channel.port1]))
-  elementOnrReady(dist1, (_window) => _window.postMessage(INITIALIZE_MESSAGE, '*', [channel.port2]))
+  const message = makeInitializeMessage(connectId)
+  elementOnReady(dist0, (_window) => _window.postMessage(message, '*', [channel.port1]))
+  elementOnReady(dist1, (_window) => _window.postMessage(message, '*', [channel.port2]))
 }
-
-export default Endpoint
