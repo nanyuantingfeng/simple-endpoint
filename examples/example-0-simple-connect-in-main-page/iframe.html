@@ -16,6 +16,8 @@
 
       endpoint.listen()
 
+      endpoint.connect(window.parent)
+
       function call_main_fn000() {
         endpoint.invoke('fn000', { a: 9 }).then((result) => {
           console.log('iframe call main fn0 ::result:', result)

@@ -15,9 +15,9 @@
           }
         },
         { connectId: 'iframe-0' }
-      )
-        .listen()
-        .connect(window.parent)
+      ).listen()
+
+      endpoint.connect(window.parent)
 
       function call_main_fn000() {
         endpoint.invoke('fn000', { a: 9 }).then((result) => {
@@ -38,9 +38,9 @@
           }
         },
         'iframe-111'
-      )
-        .listen()
-        .connect(window.parent)
+      ).listen()
+
+      endpoint2.connect(window.parent)
 
       function call_main_fn111() {
         endpoint2.invoke('fn111', { a: 666 }).then((result) => {

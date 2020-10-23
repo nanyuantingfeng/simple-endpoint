@@ -21,7 +21,7 @@ type EndpointOptionsType =
       defaultHandler?: DefaultHandlerType
     }
 
-const ENDPOINT_VERSION = `1.1.0`
+const ENDPOINT_VERSION = `1.3.0`
 const INITIALIZE_MESSAGE = `$$$SIMPLE_ENDPOINT_INITIALIZE_CONNECT$_$X$`
 const NOT_IFRAME_ID = `Endpoint.connect(dist0,dist1) if dist0 or dist1 is string, it is must be a iframe id.`
 const NOT_MATCH_VERSION = `Two Endpoint instances of inconsistent version have been found. Please note the upgrade`
@@ -45,21 +45,34 @@ function getValueByPath(source: any, path: string, defaultV?: any) {
   return oo
 }
 
-function elementOnReady(element: HTMLIFrameElement | Window, fn: (win: Window) => void) {
+function Deffer<T>() {
+  let resolve: (value?: T | PromiseLike<T>) => void = undefined
+  let reject: (reason?: any) => void = undefined
+  let promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+
+  return { promise, resolve, reject }
+}
+
+function elementOnReady(element: HTMLIFrameElement | Window): Promise<Window> {
+  const deffer = Deffer<Window>()
+
   try {
     if ((element as HTMLIFrameElement).tagName.toUpperCase() === 'IFRAME') {
-      element.addEventListener('load', () => fn((element as HTMLIFrameElement).contentWindow))
-      return
+      element.addEventListener('load', () => deffer.resolve((element as HTMLIFrameElement).contentWindow))
+      return deffer.promise
     }
 
     const _window = element as Window
 
     if (_window.window && _window.window === _window) {
       if (_window.document && _window.document.readyState === 'complete') {
-        fn(_window)
-        return
+        setTimeout(() => deffer.resolve(_window), 16)
+        return deffer.promise
       }
-      element.addEventListener('load', () => fn(_window))
+      element.addEventListener('load', () => deffer.resolve(_window))
     }
   } catch (e) {
     // at use `window.parent` call this function, will throw error.
@@ -68,8 +81,10 @@ function elementOnReady(element: HTMLIFrameElement | Window, fn: (win: Window) =
     // "xxxxxx"
     // from accessing a cross-origin frame.
 
-    fn(element as Window)
+    setTimeout(() => deffer.resolve(element as Window), 16)
   }
+
+  return deffer.promise
 }
 
 function makeInitializeMessage(connectId: string = '$X$') {
@@ -80,12 +95,16 @@ function defaultMessageEventHandler(e: MessageEvent): never {
   throw new Error(`handler not found for method '${e.data.method}'`)
 }
 
+function handshakeEventHandler(message: string) {
+  return `receipt(${message})`
+}
+
 export default class Endpoint<T extends { [key: string]: (...args: any) => any }> {
   static connect: (
     dist0: string | HTMLIFrameElement | Window,
     dist1?: string | HTMLIFrameElement | Window,
     connectId?: string
-  ) => void
+  ) => PromiseLike<[Window, Window]>
 
   private __target: MessagePort
   private __dispatches: any = {}
@@ -117,38 +136,45 @@ export default class Endpoint<T extends { [key: string]: (...args: any) => any }
     this.__default_handler = defaultHandler
   }
 
-  private readonly __handler = (e: MessageEvent) => {
+  private readonly __message_handler = (e: MessageEvent) => {
     if (e.data === this.__initialize_message && e.ports && e.ports[0]) {
       // `Endpoint.connect` maybe called multiple times
       //  or called it on main/iframe page at the same time
       this.destroy()
       this.__target = e.ports[0]
-      this.__target.onmessage = (e) => {
-        const data: MessageEventDataType = e.data
-
-        if (typeof data === 'object' && data.endpoint_version) {
-          if (data.endpoint_version !== ENDPOINT_VERSION) {
-            console.warn(NOT_MATCH_VERSION)
-          }
-
-          if (data.callback_id && 'result' in data) {
-            return this.__handle_callback(e)
-          }
-
-          if ('method' in data && !('result' in data)) {
-            return this.__handle_invoke(e)
-          }
-        }
-      }
-      return
+      this.__target.onmessage = this.__target_handler
     }
     // other message will be ignored
   }
 
+  private readonly __target_handler = (e: MessageEvent) => {
+    const data: MessageEventDataType = e.data
+
+    if (typeof data === 'object' && data.endpoint_version) {
+      if (data.endpoint_version !== ENDPOINT_VERSION) {
+        console.warn(NOT_MATCH_VERSION)
+      }
+
+      if (data.callback_id && 'result' in data) {
+        return this.__handle_callback(e)
+      }
+
+      if ('method' in data && !('result' in data)) {
+        return this.__handle_invoke(e)
+      }
+    }
+  }
+
   private readonly __handle_invoke = (e: MessageEvent) => {
     const data: MessageEventDataType = e.data
-    const fn: Function = getValueByPath(this.handlers, data.method, this.__default_handler)
-    const R = Promise.resolve(fn.apply(this.handlers, data.params || []))
+    let fn: Function, R: PromiseLike<any>
+    if (data.method === '___$handle_shake$___') {
+      fn = handshakeEventHandler
+    } else {
+      fn = getValueByPath(this.handlers, data.method, this.__default_handler)
+    }
+
+    R = Promise.resolve(fn.apply(this.handlers, data.params || []))
 
     if (!data.callback_id) {
       return
@@ -174,22 +200,22 @@ export default class Endpoint<T extends { [key: string]: (...args: any) => any }
   private readonly __handle_callback = (e: MessageEvent) => {
     const data: MessageEventDataType = e.data
 
-    const dispatch = this.__dispatches[data.callback_id]
+    const deffer = this.__dispatches[data.callback_id]
     delete this.__dispatches[data.callback_id]
 
-    if (dispatch && dispatch.resolve && dispatch.reject) {
-      data.error ? dispatch.reject(data.error) : dispatch.resolve(data.result)
+    if (deffer && deffer.resolve && deffer.reject) {
+      data.error ? deffer.reject(data.error) : deffer.resolve(data.result)
     }
   }
 
   listen() {
     this.unlisten()
-    window.addEventListener('message', this.__handler)
+    window.addEventListener('message', this.__message_handler)
     return this
   }
 
   unlisten() {
-    window.removeEventListener('message', this.__handler)
+    window.removeEventListener('message', this.__message_handler)
     return this
   }
 
@@ -200,25 +226,35 @@ export default class Endpoint<T extends { [key: string]: (...args: any) => any }
     return this
   }
 
+  handshake(timeout: number = 100) {
+    const _hs_message = String(Math.random())
+    let _receipt_message: string = undefined
+    // @ts-ignore
+    this.invoke('___$handle_shake$___', _hs_message).then((data) => (_receipt_message = data))
+
+    const deffer = Deffer<void>()
+    setTimeout(() => (_receipt_message === `receipt(${_hs_message})` ? deffer.resolve() : deffer.reject()), timeout)
+    return deffer.promise
+  }
+
   connect(dist: string | HTMLIFrameElement | Window = window) {
-    Endpoint.connect(window, dist, this.__connectId)
-    return this
+    return Endpoint.connect(window, dist, this.__connectId).then(([_, R]) => R)
   }
 
   invoke<K extends keyof T>(method: K, ...params: Parameters<T[K]>): Promise<PromiseType<ReturnType<T[K]>>> {
     const callback_id = createCallbackId()
+    const deffer = Deffer<PromiseType<ReturnType<T[K]>>>()
 
-    return new Promise((resolve, reject) => {
-      this.__dispatches[callback_id] = { resolve, reject }
+    this.__dispatches[callback_id] = deffer
 
-      try {
-        const message = { endpoint_version: ENDPOINT_VERSION, callback_id, method, params }
-        this.__target.postMessage(message)
-      } catch (e) {
-        delete this.__dispatches[callback_id]
-        reject(e)
-      }
-    })
+    try {
+      this.__target.postMessage({ endpoint_version: ENDPOINT_VERSION, callback_id, method, params })
+    } catch (e) {
+      delete this.__dispatches[callback_id]
+      deffer.reject(e)
+    }
+
+    return deffer.promise
   }
 }
 
@@ -226,7 +262,7 @@ Endpoint.connect = (
   dist0: string | HTMLIFrameElement | Window = window,
   dist1: string | HTMLIFrameElement | Window = window,
   connectId?: string
-) => {
+): PromiseLike<[Window, Window]> => {
   if (typeof dist0 === 'string') {
     dist0 = document.getElementById(dist0) as HTMLIFrameElement
     if (!dist0) throw new Error(NOT_IFRAME_ID)
@@ -238,6 +274,9 @@ Endpoint.connect = (
 
   const channel = new MessageChannel()
   const message = makeInitializeMessage(connectId)
-  elementOnReady(dist0, (_window) => _window.postMessage(message, '*', [channel.port1]))
-  elementOnReady(dist1, (_window) => _window.postMessage(message, '*', [channel.port2]))
+
+  return Promise.all([
+    elementOnReady(dist0).then((_window) => (_window.postMessage(message, '*', [channel.port1]), _window)),
+    elementOnReady(dist1).then((_window) => (_window.postMessage(message, '*', [channel.port2]), _window))
+  ])
 }
