@@ -1,6 +1,6 @@
 {
   "name": "simple-endpoint",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "simple function call between iframe and window using postMessage",
   "main": "dist/Endpoint.umd.js",
   "module": "dist/Endpoint.esm.js",

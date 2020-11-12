@@ -25,6 +25,7 @@ const ENDPOINT_VERSION = `1.3.0`
 const INITIALIZE_MESSAGE = `$$$SIMPLE_ENDPOINT_INITIALIZE_CONNECT$_$X$`
 const NOT_IFRAME_ID = `Endpoint.connect(dist0,dist1) if dist0 or dist1 is string, it is must be a iframe id.`
 const NOT_MATCH_VERSION = `Two Endpoint instances of inconsistent version have been found. Please note the upgrade`
+const ENDPOINT_INVOKE_TIMEOUT = -1
 
 let __COUNT__ = -1
 
@@ -45,13 +46,17 @@ function getValueByPath(source: any, path: string, defaultV?: any) {
   return oo
 }
 
-function Deffer<T>() {
+function Deffer<T>(timeout?: number) {
   let resolve: (value?: T | PromiseLike<T>) => void = undefined
   let reject: (reason?: any) => void = undefined
   let promise = new Promise<T>((res, rej) => {
     resolve = res
     reject = rej
   })
+
+  if (timeout > 0) {
+    setTimeout(() => reject(ENDPOINT_INVOKE_TIMEOUT), timeout)
+  }
 
   return { promise, resolve, reject }
 }
@@ -242,8 +247,16 @@ export default class Endpoint<T extends { [key: string]: (...args: any) => any }
   }
 
   invoke<K extends keyof T>(method: K, ...params: Parameters<T[K]>): Promise<PromiseType<ReturnType<T[K]>>> {
+    return this.apply(method, params, -1)
+  }
+
+  apply<K extends keyof T>(
+    method: K,
+    params: Parameters<T[K]>,
+    timeout: number
+  ): Promise<PromiseType<ReturnType<T[K]>>> {
     const callback_id = createCallbackId()
-    const deffer = Deffer<PromiseType<ReturnType<T[K]>>>()
+    const deffer = Deffer<PromiseType<ReturnType<T[K]>>>(timeout)
 
     this.__dispatches[callback_id] = deffer
 
