@@ -13,8 +13,6 @@ src/
 .npmignore
 .prettierrc
 jest.config.js
-rollup.config.js
-tsconfig.build.json
 tsconfig.json
 
 

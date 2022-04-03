@@ -104,7 +104,7 @@ function handshakeEventHandler(message: string) {
   return `receipt(${message})`
 }
 
-export default class Endpoint<T extends { [key: string]: (...args: any) => any }> {
+export class Endpoint<T extends { [key: string]: (...args: any) => any }> {
   static connect: (
     dist0: string | HTMLIFrameElement | Window,
     dist1?: string | HTMLIFrameElement | Window,

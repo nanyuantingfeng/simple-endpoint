@@ -1,32 +1,27 @@
 {
   "name": "simple-endpoint",
-  "version": "1.3.1",
+  "version": "2.0.0-beta.0",
   "description": "simple function call between iframe and window using postMessage",
-  "main": "dist/Endpoint.umd.js",
-  "module": "dist/Endpoint.esm.js",
-  "types": "dist/Endpoint.d.ts",
-  "resolutions": {
-    "fsevents": ""
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "devDependencies": {
-    "chalk": "^4.0.0",
+    "@types/jest": "^27.4.1",
+    "@types/puppeteer": "^5.4.5",
+    "chalk": "^5.0.1",
+    "glob": "^7.2.0",
+    "jest": "^27.5.1",
+    "jest-cli": "^27.5.1",
     "mkdirp": "^1.0.4",
+    "prettier": "^2.6.2",
+    "puppeteer": "^13.5.2",
     "rimraf": "^3.0.2",
-    "@types/jest": "^25.2.3",
-    "@types/puppeteer": "^3.0.0",
-    "glob": "^7.1.6",
-    "jest": "^26.0.1",
-    "jest-cli": "^26.0.1",
-    "puppeteer": "^3.3.0",
-    "rollup": "^2.12.0",
-    "rollup-plugin-typescript2": "^0.27.1",
-    "rollup-plugin-uglify": "^6.0.4",
-    "ts-jest": "^26.1.0",
-    "tslib": "^2.0.0",
-    "typescript": "^3.9.3"
+    "ts-jest": "^27.1.4",
+    "ts-node": "^10.7.0",
+    "tslib": "^2.3.1",
+    "typescript": "^4.6.3"
   },
   "scripts": {
-    "build": "rimraf dist && rollup -c",
+    "build": "rimraf dist && tsc",
     "test": "jest",
     "benchmark": "jest benchmark",
     "prepublish": "npm run build"
